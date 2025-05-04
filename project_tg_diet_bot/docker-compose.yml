@@ -1,0 +1,54 @@
+version: '3'
+services:
+
+  #второй контейнер для сервера mysql создаём просто из образа
+  db:
+    image: mysql:latest
+    restart: always
+    environment:
+      - MYSQL_DATABASE=MYSQL_DATABASE
+      - MYSQL_USER=MYSQL_USER
+      - MYSQL_PASSWORD=MYSQL_PASSWORD
+      - MYSQL_ROOT_PASSWORD=MYSQL_ROOT_PASSWORD
+    volumes:
+      - ./mysql:/var/lib/mysql
+      - ./diet_bot_db.sql:/docker-entrypoint-initdb.d/diet_bot_db.sql
+    ports:
+      - "3306:3306"
+    networks:
+      - project_tg_diet_bot
+  #третий контейнер для сервиса phpmyadmin, для управления базой данных, также создаём просто из образа
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    ports:
+      - '8081:80'
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=db
+    depends_on:
+      - db
+    networks:
+      - project_tg_diet_bot
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - BOT_TOKEN=BOT_TOKEN
+      - OPENAI_API_KEY=OPENAI_API_KEY
+      - DATABASE_URL=DATABASE_URL
+    depends_on:
+      - db
+    networks:
+      - project_tg_diet_bot
+
+#без оступа как и services начинаеся деректива сети.Для простоты я добавлю указание использования сети по умолчанию, называемой bridge. 
+
+networks:
+  project_tg_diet_bot:
+    driver: bridge
